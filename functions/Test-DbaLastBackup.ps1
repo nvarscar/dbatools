@@ -219,8 +219,8 @@ Copies the backup files for sql2014 databases to sql2016 default backup location
 				}
 			}
 			
-			$source = $sourceserver.DomainInstanceName
-			$destination = $destserver.DomainInstanceName
+			$sourceInstance = $sourceserver.DomainInstanceName
+			$destinationInstance = $destserver.DomainInstanceName
 			
 			if ($datadirectory) {
 				if (!(Test-DbaSqlPath -SqlInstance $destserver -Path $datadirectory)) {
@@ -235,7 +235,7 @@ Copies the backup files for sql2014 databases to sql2016 default backup location
 			if ($logdirectory) {
 				if (!(Test-DbaSqlPath -SqlInstance $destserver -Path $logdirectory)) {
 					$serviceaccount = $destserver.ServiceAccount
-					Stop-Function -Message "$Destination can't access its local directory $logdirectory. Please check if $serviceaccount has permissions" -Continue
+					Stop-Function -Message "$destinationInstance can't access its local directory $logdirectory. Please check if $serviceaccount has permissions" -Continue
 				}
 			}
 			else {
@@ -273,7 +273,7 @@ Copies the backup files for sql2014 databases to sql2016 default backup location
 					
 					# The db check is needed when the number of databases exceeds 255, then it's no longer auto-populated
 					if (!$db) {
-						Stop-Function -Message "$dbname does not exist on $source." -Continue
+						Stop-Function -Message "$dbname does not exist on $sourceInstance." -Continue
 					}
 					
 					$lastbackup = Get-DbaBackupHistory -SqlInstance $sourceserver -Database $dbname -Last -IncludeCopyOnly:$IncludeCopyOnly #-raw
@@ -352,7 +352,7 @@ Copies the backup files for sql2014 databases to sql2016 default backup location
 						$fileexists = $false
 						$success = $restoreresult = $dbccresult = "Skipped"
 					}
-					elseif ($source -ne $destination -and $lastbackup[0].Path.StartsWith('\\') -eq $false -and !$CopyFile) {
+					elseif ($sourceInstance -ne $destinationInstance -and $lastbackup[0].Path.StartsWith('\\') -eq $false -and !$CopyFile) {
 						Write-Message -Level Verbose -Message "Path not UNC and source does not match destination. Use -CopyFile to move the backup file."
 						$fileexists = $dbccresult = "Skipped"
 						$success = $restoreresult = "Restore not located on shared location"
@@ -381,7 +381,7 @@ Copies the backup files for sql2014 databases to sql2016 default backup location
 							$destdb = $destserver.databases[$dbname]
 							
 							if ($destdb) {
-								Stop-Function -Message "$dbname already exists on $destination - skipping" -Continue
+								Stop-Function -Message "$dbname already exists on $destinationInstance - skipping" -Continue
 							}
 							
 							if ($Pscmdlet.ShouldProcess($destination, "Restoring $ogdbname as $dbname")) {
@@ -435,18 +435,18 @@ Copies the backup files for sql2014 databases to sql2016 default backup location
 							if ($VerifyOnly) { $dbccresult = "Skipped" }
 							
 							if (!$NoDrop -and $null -ne $destserver.databases[$dbname]) {
-								if ($Pscmdlet.ShouldProcess($dbname, "Dropping Database $dbname on $destination")) {
+								if ($Pscmdlet.ShouldProcess($dbname, "Dropping Database $dbname on $destinationInstance")) {
 									Write-Message -Level Verbose -Message "Dropping database"
 									
 									## Drop the database
 									try {
 										$removeresult = Remove-SqlDatabase -SqlInstance $destserver -DbName $dbname
-										Write-Message -Level Verbose -Message "Dropped $dbname Database on $destination"
+										Write-Message -Level Verbose -Message "Dropped $dbname Database on $destinationInstance"
 									}
 									catch {
 										$destserver.Databases.Refresh()
 										if ($destserver.databases[$dbname]) {
-											Write-Message -Level Warning -Message "Failed to Drop database $dbname on $destination"
+											Write-Message -Level Warning -Message "Failed to Drop database $dbname on $destinationInstance"
 										}
 									}
 								}
@@ -454,7 +454,7 @@ Copies the backup files for sql2014 databases to sql2016 default backup location
 							
 							#Cleanup BackupFiles if -CopyFile and backup was moved to destination
 							if ($CopyFile) {
-								Write-Message -Level Verbose -Message "Removing copied backup file from $destination"
+								Write-Message -Level Verbose -Message "Removing copied backup file from $destinationInstance"
 								try {
 									$removearray | Remove-item -ErrorAction Stop
 								}
@@ -472,8 +472,8 @@ Copies the backup files for sql2014 databases to sql2016 default backup location
 					
 					if ($Pscmdlet.ShouldProcess("console", "Showing results")) {
 						[pscustomobject]@{
-							SourceServer    = $source
-							TestServer	    = $destination
+							SourceServer    = $sourceInstance
+							TestServer	    = $destinationInstance
 							Database	    = $db.name
 							FileExists	    = $fileexists
 							Size		    = [dbasize](($lastbackup.TotalSize | Measure-Object -Sum).Sum)
