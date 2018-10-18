@@ -536,7 +536,8 @@
         'Add-DbaDbMirrorMonitor',
         'Test-DbaEndpoint',
         'Get-DbaDbSharePoint',
-        'Get-DbaDbMemoryUsage'
+        'Get-DbaDbMemoryUsage',
+        'New-DbaDacOption'
     )
 
     # Cmdlets to export from this module
