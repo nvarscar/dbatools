@@ -215,10 +215,11 @@ function Invoke-DbaAdvancedInstall {
         $remoteConfig = $ConfigurationPath
     } else {
         try {
+            $configFileItem = Get-Item $ConfigurationPath
             Write-ProgressHelper -ExcludePercent -Activity $activity -Message "Copying configuration file to $ComputerName"
             $session = New-PSSession @connectionParams
             $chosenPath = Invoke-Command -Session $session -ScriptBlock { (Get-Item ([System.IO.Path]::GetTempPath())).FullName } -ErrorAction Stop
-            $remoteConfig = Join-DbaPath $chosenPath.TrimEnd('\') (Split-Path $ConfigurationPath -Leaf)
+            $remoteConfig = Join-DbaPath $chosenPath.TrimEnd('\') ($configFileItem.BaseName + "_rmt.ini")
             Write-Message -Level Verbose -Message "Copying $($ConfigurationPath) to remote machine into $chosenPath"
             $null = Send-File -Path $ConfigurationPath -Destination $chosenPath -Session $session -ErrorAction Stop
             $session | Remove-PSSession
